@@ -1,51 +1,77 @@
+// Delay between sending messages (in seconds)
+const delay = 5;
+
 // Server connection details
-const ip = 'test-mcbe.fr';
+const ip = 'example.mcbe.net';
 const port = 19132;
 
-// Delay between connecting accounts (in milliseconds)
-const delay = 10;
+// Message to send to players
+const message = 'your-message-here';
+
+// List of usernames to connect to the server
+const usernames = Array.from({ length: 10 }, (_, i) => `ElitePlayer${i + 1}`);
+
+// Whether to show bursts in the console
+const showBursts = true;
 
 // Required modules
 const bedrock = require('bedrock-protocol');
+const axios = require('axios');
 
-// List of usernames to connect to the server
-const usernames = ['UnknownCraft92', 'UnknownGamer777', 'UnknownMiner44', 'UnknownShadow1337', 'UnknownKnight23'];
+// Function to connect a client with a given username
+function connectClient(username) {
+    try {
+        console.log(username);
+        // Create a client connection
+        const client = bedrock.createClient({
+            host: ip,
+            port: +port,
+            connectTimeout: 10_000,
+            viewDistance: 1,
+            username: username,
+            skipPing: true,
+            offline: false,
+            profilesFolder: './accounts'
+        });
 
-// Loop through each username and establish a client connection to the server
-for (let i = 0; i < usernames.length; i++) {
-  let client;
-  try {
-    // Log the current username being connected
-    console.log(usernames[i]);
-    // Attempt to create a client connection
-    client = bedrock.createClient({
-      host: ip,
-      port: +port,
-      connectTimeout: 10_000,
-      viewDistance: 1,
-      username: usernames[i],
-      skipPing: true,
-      offline: false,
-      profilesFolder: './accounts'
-    });
-  }
-  catch(err) {
-    // Log any errors that occur during client creation
-    console.log(err);
-  }
+        // Triggered when the player spawns in the server
+        client.on('spawn', () => {
+            // Fetch server player list
+            axios.get(`https://api.serverstatus.com/2/${ip}:${port}`)
+                .then((response) => {
+                    // Filter out the current client's username from the player list
+                    const players = response.data.players.list.filter(item => item !== client.username);
+                    console.log(client.username);
+                    let index = 0;
+                    // Send messages to players in a loop
+                    setInterval(() => {
+                        const player = players[index];
+                        // Queue message to be sent to player
+                        client.queue('text', {
+                            type: 'chat', needs_translation: false, source_name: client.username, xuid: '', platform_chat_id: '',
+                            message: `/msg "${player}" ${message}`
+                        });
+                        index = (index + 1) % players.length;
+                        // Log burst message if applicable
+                        if (index === 0 && showBursts === true) {
+                           console.log('\x1b[35m[+] 1 burst.');
+                        }
+                    }, delay * 1000); // Convert delay to milliseconds
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+        });
 
-  // If client connection is successful
-  if (client) {
-    // Triggered when the player spawns in the server
-    client.on('spawn', () => {
-      // Log that the player has connected
-      console.log(`${usernames[i]} has joined the server.`);
-    });
+        // Triggered when the client is kicked from the server
+        client.on('kick', () => {
+          console.log('\x1b[31m[-] The bot has disconnected.');
+        });
 
-    // Triggered when the client is kicked from the server
-    client.on('kick', () => {
-      // Log that the bot has disconnected from the server
-      console.log('\x1b[31mBot disconnected from the server.');
-    });
-  }
+    } catch(err) {
+        console.log(err);
+    }
 }
+
+// Connect each username to the server
+usernames.forEach(username => connectClient(username));
