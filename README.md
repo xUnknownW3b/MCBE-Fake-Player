@@ -14,7 +14,7 @@
 ## Overview
 
 > [!NOTE]
-> CO Tool is a utility tool designed to connect fake players to a Minecraft server in order to boost server statistics. It allows server administrators to simulate player activity and increase metrics such as player count and engagement.
+> MCBE FAKE PLAYER  Tool is a utility tool designed to connect fake players to a Minecraft server in order to boost server statistics. It allows server administrators to simulate player activity and increase metrics such as player count and engagement.
 
 ## Features
 
